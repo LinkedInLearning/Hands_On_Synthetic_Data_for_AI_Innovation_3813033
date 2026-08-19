@@ -1,0 +1,3 @@
+# Fix 6.7 — SPA fallback. Without this, deep links such as /scenario/<id>
+# return 404 on Netlify and most static hosts.
+/*  /index.html  200
