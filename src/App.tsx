@@ -16,7 +16,7 @@ import NotFound from "./pages/NotFound";
 const App = () => (
   <TooltipProvider>
     <Sonner />
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       {/* Fix 4 — one bad render used to leave a white page with no way back. */}
       <ErrorBoundary>
         <Routes>
