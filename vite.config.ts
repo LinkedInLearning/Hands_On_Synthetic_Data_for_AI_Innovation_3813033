@@ -5,10 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Fix 6.7 — set VITE_BASE when deploying under a subpath, e.g.
-  //   VITE_BASE=/tools/value-navigator/ npm run build
-  // Without it every asset URL is absolute from the domain root and 404s.
-  base: process.env.VITE_BASE ?? "/",
+  base: "/Hands_On_Synthetic_Data_for_AI_Innovation_3813033/",
   server: {
     host: "::",
     port: 8080,
