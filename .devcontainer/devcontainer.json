@@ -1,11 +1,7 @@
 {
 
   "image": "ghcr.io/ydataai/synthetic-data-course-env:latest",
-  "features": {
-    "ghcr.io/devcontainers/features/python:1": {
-        "installJupyterlab": true
-    }
-  },
+  "postCreateCommand": "pip install jupyterlab",
   "customizations": {
     "codespaces": {
       "openFiles": [
