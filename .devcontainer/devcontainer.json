@@ -1,6 +1,11 @@
 {
 
   "image": "ghcr.io/ydataai/synthetic-data-course-env:latest",
+  "installJupyterlab": {
+      "type": "boolean",
+      "default": true,
+      "description": "Install JupyterLab, a web-based interactive development environment for notebooks"
+    },
   "customizations": {
     "codespaces": {
       "openFiles": [
