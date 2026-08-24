@@ -1,0 +1,12 @@
+EmployeeID,LastName,FirstName,Title,TitleOfCourtesy,BirthDate,HireDate,Address,City,Region,Country,HomePhone,Salary,
+1,Davolio,Nancy,Sales Representative,Ms.,12/08/1948 0:00,05/01/1992 0:00,507 - 20th Ave. E.Apt. 2A,Seattle,WA,USA,(206) 555-9857,2954.55,
+2,Fuller,Andrew,"Vice President, Sales",Dr.,02/19/1952 0:00,08/14/1992 0:00,908 W. Capital Way,Tacoma,WA,USA,(206) 555-9482,2254.49,
+3,Leverling,Janet,Sales Representative,Ms.,08/30/1963 0:00,04/01/1992 0:00,722 Moss Bay Blvd.,Kirkland,WA,USA,(206) 555-3412,3119.15,
+4,Peacock,Margaret,Sales Representative,Mrs.,09/19/1937 0:00,05/03/1993 0:00,4110 Old Redmond Rd.,Redmond,WA,USA,(206) 555-8122,1861.08,
+5,Buchanan,Steven,Sales Manager,Mr.,03/04/1955 0:00,10/17/1993 0:00,14 Garrett Hill,London,NULL,UK,(71) 555-4848,1744.21,
+6,Suyama,Michael,Sales Representative,Mr.,07/02/1963 0:00,10/17/1993 0:00,"Coventry House
+Miner Rd.",London,NULL,UK,(71) 555-7773,2004.07, 
+7,King,Robert,Sales Representative,Mr.,05/29/1960 0:00,01/02/1994 0:00,"Edgeham Hollow
+Winchester Way",London,NULL,UK,(71) 555-5598,1991.55,
+8,Callahan,Laura,Inside Sales Coordinator,Ms.,01/09/1958 0:00,03/05/1994 0:00,4726 - 11th Ave. N.E.,Seattle,WA,USA,(206) 555-1189,2100.5,
+9,Dodsworth,Anne,Sales Representative,Ms.,01/27/1966 0:00,11/15/1994 0:00,7 Houndstooth Rd.,London,NULL,UK,(71) 555-4444,2333.33,

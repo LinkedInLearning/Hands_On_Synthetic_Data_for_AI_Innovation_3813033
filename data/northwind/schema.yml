@@ -1,0 +1,21 @@
+categories:
+  primary_keys: [CategoryID]
+
+products:
+  primary_keys: [ProductID]
+  foreign_keys:
+    - {column: CategoryID, parent_table: categories, parent_column: CategoryID}
+
+customers:
+  primary_keys: [CustomerID]
+
+orders:
+  primary_keys: [OrderID]
+  foreign_keys:
+    - {column: CustomerID, parent_table: customers, parent_column: CustomerID}
+
+order_details:
+  primary_keys: [OrderID, ProductID]
+  foreign_keys:
+    - {column: OrderID, parent_table: orders, parent_column: OrderID}
+    - {column: ProductID, parent_table: products, parent_column: ProductID}
