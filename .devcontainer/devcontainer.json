@@ -1,4 +1,6 @@
 {
+
+  "image": "ghcr.io/ydataai/synthetic-data-course-env:latest",
   "customizations": {
     "codespaces": {
       "openFiles": [
