@@ -1,5 +1,4 @@
 {
-
   "image": "ghcr.io/ydataai/synthetic-data-course-env:latest",
   "customizations": {
     "codespaces": {
@@ -22,8 +21,7 @@
     }
   },
   // Update welcome text and set terminal prompt to '$ '
-  "onCreateCommand": "echo PS1='\"$ \"' >> ~/.bashrc",
-  // Pull all branches
+  "onCreateCommand": "echo PS1='\"$ \"' >> ~/.bashrc && mkdir -p ~/.jupyter && echo \"c.ServerApp.allow_root = True\" > ~/.jupyter/jupyter_server_config.py",  // Pull all branches
   "postAttachCommand": "git pull --all"
 }
 // DevContainer Reference: https://code.visualstudio.com/docs/remote/devcontainerjson-reference
