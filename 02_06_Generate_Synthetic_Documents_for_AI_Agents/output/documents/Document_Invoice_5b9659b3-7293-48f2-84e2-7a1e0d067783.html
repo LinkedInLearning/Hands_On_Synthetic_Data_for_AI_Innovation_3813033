@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>INVOICE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  @page { size: A4 portrait; margin: 18mm 16mm; }
+
+  /* .page is a visual container for screen preview.
+     In print, @page margin controls the actual page geometry.
+     overflow MUST be visible — hidden would clip variable-length content. */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 18mm 16mm 14mm 16mm;
+    box-sizing: border-box;
+    background: var(--color-bg);
+    overflow: visible;
+  }
+
+  /* Only add a forced break when there are two explicit .page divs
+     (e.g. a cover page followed by a body page).
+     A single .page div must NOT carry page-break-after: always — that
+     would insert a blank trailing page in the PDF. */
+  .page + .page {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* --- Table pagination (critical for variable-length transaction tables) ---
+     display: table-header-group  → browser/Playwright repeats <thead> on
+     every printed page automatically.
+     page-break-inside: avoid     → a single row is never split across pages. */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr    { page-break-inside: avoid; break-inside: avoid; }
+
+  /* Keep individual legal clauses and headings intact across page breaks.
+     Note: bare <section> is intentionally excluded — catching the entire
+     content wrapper with page-break-inside:avoid pushes whole articles to
+     the next page on long documents, leaving page 1 looking like a cover. */
+  .clause, .section, .terms-block, h2, h3 {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  h2, h3 { page-break-after: avoid; break-after: avoid; }
+
+  @media screen {
+    body { background: #e0e0e0; padding: 24px 0; }
+    .page { margin: 0 auto 24px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; margin: 0; min-height: 0; padding: 0; }
+  }
+
+/* Palette */
+:root{
+  --color-primary: #000000;
+  --color-secondary: #333333;
+  --color-accent: #555555;
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-text: #000000;
+  --color-muted: #555555;
+  --color-border: #cccccc;
+}
+
+/* Base typography */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: var(--color-text); }
+h1, h2, h3 { margin: 0 0 8px 0; color: var(--color-text); }
+p { margin: 0 0 8px 0; }
+
+/* Header */
+.header {
+  display: block;
+  margin-bottom: 16px;
+}
+.brand {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-secondary);
+  letter-spacing: 0.3px;
+}
+.doc-title {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 6px 0 8px 0;
+  color: var(--color-text);
+}
+.doc-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  align-items: end;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 0;
+  margin-top: 6px;
+}
+.doc-meta .field {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.doc-meta .field .label {
+  color: var(--color-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.doc-meta .field .value {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 12px;
+}
+.doc-meta .field.right { justify-content: flex-end; }
+
+/* Parties grid */
+.party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0 10px 0;
+}
+.party {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 10px 12px;
+}
+.party .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.4px;
+}
+.party .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+.party .address {
+  font-size: 12px;
+  color: var(--color-secondary);
+  white-space: pre-line;
+}
+
+/* Line items table */
+.items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.items thead th {
+  text-align: left;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.items tbody td {
+  font-size: 12px;
+  color: var(--color-text);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+.items .col-desc { width: 100%; }
+.items .num {
+  text-align: right;
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+/* Notes / terms section */
+.notes {
+  margin-top: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 10px 12px;
+}
+.notes h3 {
+  font-size: 12px;
+  color: var(--color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.notes .content {
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+/* Footer */
+.footer {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  font-size: 11px;
+  color: var(--color-muted);
+  text-align: center;
+}
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <div class="brand">Bayview Fresh Market, LLC</div>
+      <h1 class="doc-title">INVOICE</h1>
+
+      <div class="doc-meta">
+        <div class="field">
+          <span class="label">Invoice No.</span>
+          <span class="value">FM-2026-0826-10472</span>
+        </div>
+        <div class="field right">
+          <span class="label">Date</span>
+          <span class="value">2026-08-26</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="party-grid">
+      <div class="party from">
+        <div class="label">Bill From</div>
+        <div class="name">Bayview Fresh Market, LLC</div>
+        <div class="address">2276 Bay Street, San Francisco, CA 94123<br>Phone: (415) 555-0148<br>Email: receipts@bayviewfresh.com<br>Web: www.bayviewfresh.com<br>EIN: 84-2917345<br>CA Seller’s Permit: 102-553918</div>
+      </div>
+      <div class="party to">
+        <div class="label">Bill To</div>
+        <div class="name">Avery Chen</div>
+        <div class="address">2280 Lombard St, Apt 3B<br>San Francisco, CA 94123<br>Email: a.chen@examplemail.com<br>Loyalty ID: 1023-4492</div>
+      </div>
+    </section>
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th class="col-desc">Description</th>
+          <th class="col-qty num">Qty</th>
+          <th class="col-unit num">Unit Price</th>
+          <th class="col-amount num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="vertical-align:top;">Organic Bananas — PLU 4011 (lb)</td><td style="text-align:center;vertical-align:top;">2.38</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.88</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Gala Apples — PLU 4133 (lb)</td><td style="text-align:center;vertical-align:top;">3.02</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.69</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.10</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Whole Milk, 1 Gallon (UPC 041383005689)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Large Eggs, 12 ct (UPC 072239001021)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.69</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.69</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Sourdough Bread Loaf (UPC 036406009314)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.29</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Fresh Atlantic Salmon Fillet — PLU 4882 (lb)</td><td style="text-align:center;vertical-align:top;">1.24</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$16.11</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Baby Spinach, 10 oz (UPC 071202012004)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Roma Tomatoes — PLU 4087 (lb)</td><td style="text-align:center;vertical-align:top;">1.50</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Yellow Onions, 2 lb Bag (UPC 033383040214)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.79</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Greek Yogurt, Plain 32 oz (UPC 036632012345)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.49</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Brown Rice, 2 lb (UPC 078742105922)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.59</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.59</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Peanut Butter, 16 oz (UPC 051500255611)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Coffee Beans, House Blend 12 oz (UPC 099482010127)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.99</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Bottled Water, 24-pack 16.9 oz (UPC 078742167001)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.49</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Honey Oat Cereal, 14 oz (UPC 300005551234)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.79</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Extra Virgin Olive Oil, 1L (UPC 041498265901)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.99</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Cheddar Cheese, 8 oz (UPC 071979002217)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.49</td><td style="text-align:center;vertical-align:top;">E</td></tr><tr><td style="vertical-align:top;">Paper Towels, 6-Roll (UPC 036000393037)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.99</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Laundry Detergent, 64-Load (UPC 023400450112)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.49</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Dish Soap, 24 oz (UPC 035000521664)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.29</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">All-Purpose Cleaner, 32 oz (UPC 041598960330)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.59</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.59</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">LED Bulbs, Soft White 2-Pack (UPC 043168977652)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.99</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Reusable Shopping Bag (SKU RB-0007)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.25</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.25</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Aluminum Foil, 75 sq ft (UPC 027901001755)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.29</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">AA Batteries, 8-Pack (UPC 041333825015)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.49</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Food Storage Containers, 4-Pack (SKU FS-0042)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.99</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Trash Bags, 13 gal, 30 ct (UPC 025700707556)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.49</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">Hand Soap, 2-Pack (UPC 071190006408)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:center;vertical-align:top;">T</td></tr><tr><td style="vertical-align:top;">CA Redemption Value (CRV) — 24 Bottles @ $0.05 (CRV-24WTR)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.20</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.20</td><td style="text-align:center;vertical-align:top;">N</td></tr>
+      </tbody>
+    </table>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;"><table style="width:100%;max-width:340px;margin-left:auto;border-collapse:collapse;font-size:9pt;"><tr><td style="padding:5px 12px;">Subtotal (Before Tax)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$156.20</td></tr><tr><td style="padding:5px 12px;">Sales Tax (8.625%)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$5.94</td></tr><tr style="font-weight:700;border-top:2px solid currentColor;"><td style="padding:8px 12px;">Total Due</td><td style="padding:8px 12px;text-align:right;white-space:nowrap;">$162.14</td></tr></table></div>
+
+    <section class="notes">
+      <h3>Payment Terms / Notes</h3>
+      <div class="content">
+        <h3>Order & Register Details</h3><p>Time: 10:42 AM PDT<br>Register: 03 • Cashier: K. Morales<br>Order ID: WEB-CA-882417<br>Terms: Due upon receipt</p><h3>Tax Legend</h3><p>T = Taxable (8.625%) • E = Exempt (Grocery) • N = Non-taxable fee/deposit</p><h3>Payment</h3><ul><li>Method: VISA Credit • **** **** **** 4421 • Chip Read (EMV)</li><li>Authorization: Approved • Auth Code: 7F2K91 • Ref: 341880265</li><li>Amount Paid: $162.14</li><li>Balance Due: $0.00</li></ul><h3>Returns & Store Info</h3><p>Returns: Unopened general merchandise accepted within 14 days with receipt. Perishable items may be returned the same day if quality concerns arise. CRV deposits are refundable at certified recycling centers. Prices include applicable discounts at time of sale.</p><p>Store Hours: Mon–Sat 7:00 AM–10:00 PM • Sun 8:00 AM–9:00 PM</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Thank you for shopping at Bayview Fresh Market—fresh food, fair prices, fast checkout.
+    </footer>
+
+  </div>
+</body>
+</html>

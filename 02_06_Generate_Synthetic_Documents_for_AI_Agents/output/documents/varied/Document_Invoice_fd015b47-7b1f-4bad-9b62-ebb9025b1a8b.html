@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>INVOICE CRC-2026-0826-2145</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    @page { size: A4 portrait; margin: 18mm 16mm; }
+
+    /* .page is a visual container for screen preview.
+       In print, @page margin controls the actual page geometry.
+       overflow MUST be visible — hidden would clip variable-length content. */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 18mm 16mm 14mm 16mm;
+      box-sizing: border-box;
+      background: var(--color-bg);
+      overflow: visible;
+    }
+
+    /* Only add a forced break when there are two explicit .page divs
+       (e.g. a cover page followed by a body page).
+       A single .page div must NOT carry page-break-after: always — that
+       would insert a blank trailing page in the PDF. */
+    .page + .page {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    /* --- Table pagination (critical for variable-length transaction tables) ---
+       display: table-header-group  → browser/Playwright repeats <thead> on
+       every printed page automatically.
+       page-break-inside: avoid     → a single row is never split across pages. */
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr    { page-break-inside: avoid; break-inside: avoid; }
+
+    /* Keep individual legal clauses and headings intact across page breaks.
+       Note: bare <section> is intentionally excluded — catching the entire
+       content wrapper with page-break-inside:avoid pushes whole articles to
+       the next page on long documents, leaving page 1 looking like a cover. */
+    .clause, .section, .terms-block, h2, h3 {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    h2, h3 { page-break-after: avoid; break-after: avoid; }
+
+    @media screen {
+      body { background: #e0e0e0; padding: 24px 0; }
+      .page { margin: 0 auto 24px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; margin: 0; min-height: 0; padding: 0; }
+    }
+
+    :root{
+      --color-primary: #4a1d96;
+      --color-secondary: #7c3aed;
+      --color-accent: #a78bfa;
+      --color-bg: #ffffff;
+      --color-surface: #f5f3ff;
+      --color-text: #1e1b2e;
+      --color-muted: #6d28d9;
+      --color-border: #c4b5fd;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      color: var(--color-text);
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.45;
+      background: var(--color-bg);
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand img {
+      display: block;
+      height: 48px;
+      width: auto;
+      object-fit: contain;
+    }
+    .brand .sender {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--color-text);
+    }
+
+    .doc-heading {
+      text-align: right;
+      min-width: 280px;
+    }
+    .doc-title {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+    .doc-meta {
+      margin-top: 6px;
+      font-size: 12.5px;
+    }
+    .doc-meta .row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .doc-meta .label {
+      color: var(--color-text);
+      opacity: 0.9;
+      font-weight: 600;
+    }
+    .doc-meta .value {
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
+    .divider {
+      margin: 14px 0 18px 0;
+      border: 0;
+      border-top: 3px solid var(--color-primary);
+      height: 0;
+    }
+
+    /* Parties */
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .party-card {
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+    .party-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      font-weight: 700;
+    }
+    .party-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .party-address {
+      font-size: 12.5px;
+      white-space: pre-line;
+    }
+
+    /* Line items table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+      margin-top: 10px;
+    }
+    .items-table thead th {
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      color: var(--color-text);
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: 10px 10px;
+    }
+    .items-table tbody td {
+      padding: 10px 10px;
+      vertical-align: top;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text);
+      font-size: 13px;
+    }
+    .items-table tbody tr:nth-child(even) td {
+      background: var(--color-surface);
+    }
+
+    /* Numeric/amount columns */
+    .items-table th.num,
+    .items-table td.num {
+      text-align: right;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+    .items-table th.col-qty, .items-table td.col-qty { width: 90px; }
+    .items-table th.col-unit, .items-table td.col-unit { width: 120px; }
+    .items-table th.col-amount, .items-table td.col-amount { width: 130px; font-weight: 600; }
+
+    /* Totals container (right-aligned as required) */
+    .totals-container table {
+      border-collapse: collapse;
+      font-size: 13.5px;
+      color: var(--color-text);
+      min-width: 260px;
+    }
+    .totals-container th,
+    .totals-container td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    .totals-container tr:last-child th,
+    .totals-container tr:last-child td {
+      border-bottom: 2px solid var(--color-primary);
+      font-weight: 700;
+    }
+    .totals-container th {
+      text-align: right;
+      font-weight: 600;
+    }
+    .totals-container td {
+      text-align: right;
+      min-width: 90px;
+    }
+
+    /* Notes / payment terms */
+    .notes {
+      margin-top: 18px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-bg);
+      padding: 12px 14px;
+    }
+    .notes h3 {
+      margin: 0 0 6px 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-muted);
+      font-weight: 700;
+    }
+    .notes .content {
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 22px;
+      padding-top: 10px;
+      border-top: 1px solid var(--color-border);
+      font-size: 11.5px;
+      color: var(--color-text);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="brand">
+        <img src="" alt="Cobalt Ridge Consulting LLC logo" />
+        <div class="sender">Cobalt Ridge Consulting LLC</div>
+      </div>
+      <div class="doc-heading">
+        <h1 class="doc-title">INVOICE</h1>
+        <div class="doc-meta">
+          <div class="row">
+            <div class="label">Invoice No.</div>
+            <div class="value">CRC-2026-0826-2145</div>
+          </div>
+          <div class="row">
+            <div class="label">Date</div>
+            <div class="value">August 26, 2026</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <hr class="divider" />
+
+    <section class="parties">
+      <div class="party-card">
+        <h3>Bill From</h3>
+        <div class="party-name">Cobalt Ridge Consulting LLC</div>
+        <div class="party-address">475 Lexington Ave, 14th Floor<br>New York, NY 10017, USA<br>Phone: +1 (212) 555-0199<br>Email: billing@cobaltridgeconsulting.com<br>EIN: 11-6982431</div>
+      </div>
+      <div class="party-card">
+        <h3>Bill To</h3>
+        <div class="party-name">Arden Manufacturing Corporation</div>
+        <div class="party-address">Attn: Accounts Payable<br>1600 Industrial Parkway<br>Newark, NJ 07114, USA<br>AP Email: ap@ardenmfg.com</div>
+      </div>
+    </section>
+
+    <section class="line-items">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="num col-qty">Qty</th>
+            <th class="num col-unit">Unit Price</th>
+            <th class="num col-amount">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="vertical-align:top;">Strategic Advisory Consulting<div style="font-size:90%;">Executive guidance on sequencing of MES capabilities, vendor shortlist validation, and governance model design; remote working sessions and synthesis notes included.</div></td><td style="text-align:center;vertical-align:top;">32.0</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$265.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8,480.00</td><td style="text-align:center;vertical-align:top;">Exempt</td></tr><tr><td style="vertical-align:top;">Data Architecture Review &amp; Recommendations<div style="font-size:90%;">Assessment of plant-floor data flows (PLC to historian), canonical model definition, and API mediation strategy; includes written findings with prioritized remediation items.</div></td><td style="text-align:center;vertical-align:top;">24.0</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$245.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5,880.00</td><td style="text-align:center;vertical-align:top;">Exempt</td></tr><tr><td style="vertical-align:top;">On‑site Workshop Facilitation (Newark Plant)<div style="font-size:90%;">Process mapping and RACI alignment for changeover optimization; two facilitators on site, working session materials and follow‑up actions captured.</div></td><td style="text-align:center;vertical-align:top;">12.0</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$225.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2,700.00</td><td style="text-align:center;vertical-align:top;">Exempt</td></tr><tr><td style="vertical-align:top;">Project Management &amp; Coordination<div style="font-size:90%;">Sprint planning, stakeholder cadence setup, risk/issue log maintenance, and cross‑vendor alignment; weekly status reporting included.</div></td><td style="text-align:center;vertical-align:top;">15.0</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$150.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2,250.00</td><td style="text-align:center;vertical-align:top;">Exempt</td></tr><tr><td style="vertical-align:top;">Software Tooling Subscription (Pro‑rated, 1 month)<div style="font-size:90%;">Temporary license for data lineage and dependency analysis tool used to generate impact assessment visuals included in deliverables.</div></td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$420.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$420.00</td><td style="text-align:center;vertical-align:top;">Taxable</td></tr><tr><td style="vertical-align:top;">Printed Training Binders (12 copies)<div style="font-size:90%;">Full‑color, coil‑bound workshop binders for operations leads; 84 pages each with reference appendices.</div></td><td style="text-align:center;vertical-align:top;">12</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$18.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$216.00</td><td style="text-align:center;vertical-align:top;">Taxable</td></tr><tr><td style="vertical-align:top;">Courier Delivery Fee (NYC → Newark)<div style="font-size:90%;">Same‑day bonded courier for printed materials to meet workshop start date.</div></td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$38.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$38.00</td><td style="text-align:center;vertical-align:top;">Taxable</td></tr>
+        </tbody>
+      </table>
+
+      <div class="totals-container" style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <table style="width:100%;max-width:340px;margin-left:auto;border-collapse:collapse;font-size:9pt;"><tr><td style="padding:5px 12px;">Subtotal (Non‑Taxable)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$19,310.00</td></tr><tr><td style="padding:5px 12px;">Subtotal (Taxable)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$674.00</td></tr><tr><td style="padding:5px 12px;">Sales Tax (NYC/NY State 8.875%)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$59.82</td></tr><tr style="font-weight:700;border-top:2px solid currentColor;"><td style="padding:8px 12px;">Total Due</td><td style="padding:8px 12px;text-align:right;white-space:nowrap;">$20,043.82</td></tr></table>
+      </div>
+    </section>
+
+    <section class="notes terms-block">
+      <h3>Payment Terms & Notes</h3>
+      <div class="content">
+        <h3>Invoice Details</h3><p><strong>Issue Date:</strong> August 26, 2026 &nbsp;&nbsp; <strong>Due Date (Net 30):</strong> September 25, 2026 &nbsp;&nbsp; <strong>Service Period:</strong> July 1, 2026 – August 15, 2026 &nbsp;&nbsp; <strong>Currency:</strong> USD &nbsp;&nbsp; <strong>Client PO:</strong> AM-PO-11837</p><p>Thank you for the opportunity to support Arden Manufacturing Corporation’s operational transformation initiative. Below is the itemized invoice for professional consulting services and related pass-through charges incurred during the period noted above.</p><p style="font-size:90%;">Taxability is determined by service location and item type. Consulting services listed above are non‑taxable; software/tooling, printed materials, and delivery fees are taxable in New York.</p><h3>Payment Terms</h3><ul><li>Terms: Net 30 days from invoice date. Electronic remittance preferred.</li><li>Please include Invoice No. CRC-2026-0826-2145 on all payments and remittance advice.</li><li>Late payments are subject to a 1.5% monthly service charge (or the maximum permitted by law), applied to any past‑due balance.</li><li>Disputes must be submitted in writing to billing@cobaltridgeconsulting.com within 10 business days of receipt.</li></ul><h3>How to Pay</h3><ul><li>ACH (Preferred): First Republic Bank (JPMorgan Chase) | Routing (ABA): 321081669 | Account: ****8274 | Account Name: Cobalt Ridge Consulting LLC</li><li>Wire (USD): SWIFT: CHASUS33 | Routing (ABA): 021000021 | Account: ****8274 | Beneficiary: Cobalt Ridge Consulting LLC</li><li>Check: Payable to “Cobalt Ridge Consulting LLC”, Remit to Lockbox #20834, PO Box 92845, New York, NY 10087-2845, USA</li><li>Secure Card/ACH Portal: https://payments.cobaltridgeconsulting.com/invoice/CRC-2026-0826-2145</li></ul><h3>Notes</h3><p>Engagement Reference: “Arden Ops Transformation – Phase 1 Advisory.” Primary contacts: Arden PM – Dana Whitaker (dwhitaker@ardenmfg.com); Cobalt Ridge Engagement Lead – Marcus Lee (marcus.lee@cobaltridgeconsulting.com).</p><p>Documents: Statement of Work dated June 20, 2026 (SOW‑CR‑AOT‑001). W‑9 available upon request.</p><p>Thank you for your business and for the continued collaboration as we transition into Phase 2 implementation planning.</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Thank you for your business. Terms: Net 30. Please include Invoice No. CRC-2026-0826-2145 on all payments.
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>INVOICE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    @page { size: A4 portrait; margin: 18mm 16mm; }
+
+    /* .page is a visual container for screen preview.
+       In print, @page margin controls the actual page geometry.
+       overflow MUST be visible — hidden would clip variable-length content. */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 18mm 16mm 14mm 16mm;
+      box-sizing: border-box;
+      background: var(--color-bg);
+      overflow: visible;
+    }
+
+    /* Only add a forced break when there are two explicit .page divs
+       (e.g. a cover page followed by a body page).
+       A single .page div must NOT carry page-break-after: always — that
+       would insert a blank trailing page in the PDF. */
+    .page + .page {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    /* --- Table pagination (critical for variable-length transaction tables) ---
+       display: table-header-group  → browser/Playwright repeats <thead> on
+       every printed page automatically.
+       page-break-inside: avoid     → a single row is never split across pages. */
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr    { page-break-inside: avoid; break-inside: avoid; }
+
+    /* Keep individual legal clauses and headings intact across page breaks.
+       Note: bare <section> is intentionally excluded — catching the entire
+       content wrapper with page-break-inside:avoid pushes whole articles to
+       the next page on long documents, leaving page 1 looking like a cover. */
+    .clause, .section, .terms-block, h2, h3 {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    h2, h3 { page-break-after: avoid; break-after: avoid; }
+
+    @media screen {
+      body { background: #e0e0e0; padding: 24px 0; }
+      .page { margin: 0 auto 24px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; margin: 0; min-height: 0; padding: 0; }
+    }
+
+    :root {
+      --color-primary: #000000;
+      --color-secondary: #000000;
+      --color-accent: #000000;
+      --color-bg: #ffffff;
+      --color-surface: #ffffff;
+      --color-text: #000000;
+      --color-muted: #000000;
+      --color-border: #000000;
+    }
+
+    body {
+      font-family: 'Inter', Arial, Helvetica, sans-serif;
+      color: var(--color-text);
+      background: var(--color-bg);
+      margin: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-size: 12pt;
+      line-height: 1.4;
+    }
+
+    h1, h2, h3 {
+      color: var(--color-text);
+      margin: 0 0 6px 0;
+      font-weight: 700;
+    }
+    h1 { font-size: 20pt; }
+    h2 { font-size: 14pt; }
+    h3 { font-size: 12pt; }
+
+    p { margin: 0 0 8px 0; }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--color-border);
+      margin: 12px 0;
+      height: 0;
+    }
+
+    /* Header layout */
+    .header {
+      display: block;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .doc-title {
+      font-size: 20pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-size: 11pt;
+    }
+    .doc-meta div { margin: 0; }
+
+    /* Party details: plain labeled-field tables (no borders) */
+    .party-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 6px 0 0 0;
+    }
+    .party h3 {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .fields {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .fields td {
+      padding: 2px 0;
+      vertical-align: top;
+    }
+    .fields .label {
+      width: 90px;
+      white-space: nowrap;
+      font-weight: 600;
+      padding-right: 8px;
+      color: var(--color-text);
+    }
+
+    /* Line items table */
+    .items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .items thead th {
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1px solid var(--color-border);
+      padding: 6px 6px 6px 0;
+    }
+    .items th.num { text-align: right; }
+    .items tbody td {
+      padding: 6px 6px 6px 0;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: top;
+    }
+    /* Numeric/amount columns formatting */
+    .items tbody td:nth-child(2),
+    .items tbody td:nth-child(3),
+    .items tbody td:nth-child(4),
+    .items thead th:nth-child(2),
+    .items thead th:nth-child(3),
+    .items thead th:nth-child(4) {
+      text-align: right;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+
+    /* Notes / Terms */
+    .notes {
+      margin-top: 8px;
+      font-size: 11pt;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 12px;
+      font-size: 10pt;
+      color: var(--color-text);
+    }
+    .footer {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="header-row">
+        <div class="doc-title">INVOICE</div>
+        <div class="doc-meta">
+          <div><strong>Invoice No:</strong> HM-INV-2026-08-004198</div>
+          <div><strong>Date:</strong> Aug 26, 2026 5:42 PM ET</div>
+        </div>
+      </div>
+      <hr />
+      <div class="party-grid">
+        <div class="party">
+          <h3>Bill From</h3>
+          <table class="fields">
+            <tr>
+              <td class="label">Name:</td>
+              <td>Harbor Market</td>
+            </tr>
+            <tr>
+              <td class="label">Address:</td>
+              <td>214 Atlantic Ave, Brooklyn, NY 11201<br>Tel: (718) 555-0147 • Email: receipts@harbormarket.com<br>Store ID: HM-BK01 • NY Sales Tax Reg#: 34-219845</td>
+            </tr>
+          </table>
+        </div>
+        <div class="party">
+          <h3>Bill To</h3>
+          <table class="fields">
+            <tr>
+              <td class="label">Name:</td>
+              <td>Jamie Rivera</td>
+            </tr>
+            <tr>
+              <td class="label">Address:</td>
+              <td>88 Wyckoff St, Apt 2B, Brooklyn, NY 11201</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <hr />
+    </header>
+
+    <main>
+      <table class="items">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="num">Qty</th>
+            <th class="num">Unit Price</th>
+            <th class="num">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="vertical-align:top;">Groceries Net (EX)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$78.47</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$78.47</td></tr><tr><td style="vertical-align:top;">Prepared &amp; Household Net (TX)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$82.67</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$82.67</td></tr><tr><td style="vertical-align:top;">Fees &amp; Deposits (Non-Taxable)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.00</td></tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;"><table style="width:100%;max-width:340px;margin-left:auto;border-collapse:collapse;font-size:9pt;"><tr><td style="padding:5px 12px;">Subtotal</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$163.14</td></tr><tr><td style="padding:5px 12px;">Sales Tax (NYC 8.875%)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$7.34</td></tr><tr style="font-weight:700;border-top:2px solid currentColor;"><td style="padding:8px 12px;">Total Due</td><td style="padding:8px 12px;text-align:right;white-space:nowrap;">$170.48</td></tr></table></div>
+
+      <h3 style="margin-top:12px;">Notes / Payment Terms</h3>
+      <div class="notes">
+        <h2>Order Details</h2><p>Order #: 714829 • Lane: 04 • Cashier: D. Patel</p><p>Customer Loyalty ID: HM-0492283</p><h3>Payment</h3><p>Payment Method: Visa Credit • Card ending 4421 • Auth: 0A63F9 • Entry: Contactless</p><p>Payment Terms: Paid in full at time of sale</p><h3>Notes &amp; Policies</h3><ul><li>Most unprepared grocery items are exempt from NY sales tax. Prepared foods and household goods are taxable.</li><li>NY bottle deposits and NYC paper bag fees are not subject to sales tax and are refundable where applicable.</li><li>Returns: With receipt, unopened non-perishable items within 7 days. No returns on prepared foods. Perishables credited at manager’s discretion.</li></ul>
+      </div>
+    </main>
+
+    <hr />
+    <footer>
+      <div class="footer">Thank you for shopping at Harbor Market.</div>
+    </footer>
+  </div>
+</body>
+</html>

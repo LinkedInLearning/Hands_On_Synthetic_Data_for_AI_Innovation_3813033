@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>INVOICE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+    @page { size: A4 portrait; margin: 18mm 16mm; }
+
+    /* .page is a visual container for screen preview.
+       In print, @page margin controls the actual page geometry.
+       overflow MUST be visible — hidden would clip variable-length content. */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 18mm 16mm 14mm 16mm;
+      box-sizing: border-box;
+      background: var(--color-bg);
+      overflow: visible;
+    }
+
+    /* Only add a forced break when there are two explicit .page divs
+       (e.g. a cover page followed by a body page).
+       A single .page div must NOT carry page-break-after: always — that
+       would insert a blank trailing page in the PDF. */
+    .page + .page {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    /* --- Table pagination (critical for variable-length transaction tables) ---
+       display: table-header-group  → browser/Playwright repeats <thead> on
+       every printed page automatically.
+       page-break-inside: avoid     → a single row is never split across pages. */
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr    { page-break-inside: avoid; break-inside: avoid; }
+
+    /* Keep individual legal clauses and headings intact across page breaks.
+       Note: bare <section> is intentionally excluded — catching the entire
+       content wrapper with page-break-inside:avoid pushes whole articles to
+       the next page on long documents, leaving page 1 looking like a cover. */
+    .clause, .section, .terms-block, h2, h3 {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    h2, h3 { page-break-after: avoid; break-after: avoid; }
+
+    @media screen {
+      body { background: #e0e0e0; padding: 24px 0; }
+      .page { margin: 0 auto 24px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; margin: 0; min-height: 0; padding: 0; }
+    }
+
+    :root {
+      --color-primary: #1b4332;
+      --color-secondary: #2d6a4f;
+      --color-accent: #52b788;
+      --color-bg: #ffffff;
+      --color-surface: #ecf7f0;
+      --color-text: #0d2118;
+      --color-muted: #4a7060;
+      --color-border: #b7d9c4;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      color: var(--color-text);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Header */
+    .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { font-weight: 700; color: var(--color-primary); font-size: 16px; }
+    .meta { text-align: right; color: var(--color-muted); font-size: 12px; }
+    .meta .line { white-space: nowrap; }
+    .doc-title {
+      margin: 10px 0 14px 0;
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--color-primary);
+    }
+    .title-accent {
+      width: 72px; height: 4px;
+      background: var(--color-accent);
+      margin: 0 auto 12px auto;
+      border-radius: 2px;
+    }
+
+    /* Parties grid */
+    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 18px 0; }
+    .party {
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      padding: 12px 12px;
+      border-radius: 6px;
+    }
+    .party .label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--color-muted); margin-bottom: 6px; font-weight: 600;
+    }
+    .party .name { font-weight: 700; color: var(--color-text); margin-bottom: 4px; }
+    .party .address { white-space: pre-line; color: var(--color-text); }
+
+    /* Line items table */
+    .items { width: 100%; border-collapse: collapse; }
+    .items thead th {
+      font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: 10px 8px;
+      text-align: left;
+    }
+    .items tbody td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: top;
+      color: var(--color-text);
+    }
+    /* Numeric/amount columns */
+    .items th:nth-child(2), .items th:nth-child(3), .items th:nth-child(4),
+    .items td:nth-child(2), .items td:nth-child(3), .items td:nth-child(4) {
+      text-align: right;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+    .items th:first-child, .items td:first-child { text-align: left; }
+
+    /* Notes / Payment terms */
+    .notes { margin-top: 14px; border-top: 2px solid var(--color-border); padding-top: 12px; }
+    .notes h3 { margin: 0 0 6px 0; font-size: 14px; color: var(--color-secondary); }
+    .document-content { font-size: 12.5px; line-height: 1.55; color: var(--color-text); }
+
+    /* Footer */
+    .footer {
+      margin-top: 18px; padding-top: 10px;
+      border-top: 1px solid var(--color-border);
+      text-align: center; font-size: 11px; color: var(--color-muted);
+    }
+
+    /* Small key-value grid (optional meta use) */
+    .smallgrid { display: grid; grid-template-columns: auto auto; gap: 4px 16px; align-items: baseline; margin-top: 6px; }
+    .smallgrid .k { color: var(--color-muted); font-size: 12px; }
+    .smallgrid .v { color: var(--color-text); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="brand-row">
+        <div class="brand">GreenLeaf Market & Grocery</div>
+        <div class="meta">
+          <div class="line">Invoice No: <strong>GLM-INV-106482</strong></div>
+          <div class="line">Date: <strong>August 26, 2026</strong></div>
+        </div>
+      </div>
+      <h1 class="doc-title">INVOICE</h1>
+      <div class="title-accent"></div>
+    </header>
+
+    <section class="parties">
+      <div class="party from">
+        <div class="label">Bill From</div>
+        <div class="name">GreenLeaf Market & Grocery</div>
+        <div class="address">1258 Hudson Avenue<br>New York, NY 10013<br>United States<br>Phone: (212) 555-0196<br>Email: billing@greenleafmarket.com<br>www.greenleafmarket.com<br>Store ID: GLM-NY-07<br>Tax ID (EIN): 12-3456789</div>
+      </div>
+      <div class="party to">
+        <div class="label">Bill To</div>
+        <div class="name">Avery Thompson</div>
+        <div class="address">403 West 17th Street, Apt 5C<br>New York, NY 10011<br>Email: avery.thompson@mailclient.com<br>Phone: (917) 555-4420</div>
+      </div>
+    </section>
+
+    <section class="line-items">
+      <table class="items">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="vertical-align:top;">Organic 2% Milk, 1 gal</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.79</td></tr><tr><td style="vertical-align:top;">Bananas (approx. 2.40 lb) · priced per lb</td><td style="text-align:center;vertical-align:top;">2.40 lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.69/lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.66</td></tr><tr><td style="vertical-align:top;">Gala Apples, 3 lb bag</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49</td></tr><tr><td style="vertical-align:top;">Whole Wheat Sandwich Bread, 24 oz loaf</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.29</td></tr><tr><td style="vertical-align:top;">Basmati Rice, 10 lb bag</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$15.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$15.99</td></tr><tr><td style="vertical-align:top;">Atlantic Salmon Fillet (1.20 lb) · priced per lb</td><td style="text-align:center;vertical-align:top;">1.20 lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$11.99/lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$14.39</td></tr><tr><td style="vertical-align:top;">Boneless Skinless Chicken Breast (2.15 lb) · priced per lb</td><td style="text-align:center;vertical-align:top;">2.15 lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49/lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.64</td></tr><tr><td style="vertical-align:top;">Extra Virgin Olive Oil, 1 L</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$10.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$10.99</td></tr><tr><td style="vertical-align:top;">Coffee Beans, House Blend, 12 oz</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.99</td></tr><tr><td style="vertical-align:top;">Unsweetened Sparkling Water, 12-pack (12 fl oz cans)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.49</td></tr><tr><td style="vertical-align:top;">Broccoli Crowns (1.35 lb) · priced per lb</td><td style="text-align:center;vertical-align:top;">1.35 lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.49/lb</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.01</td></tr><tr><td style="vertical-align:top;">Grade A Large Eggs, 12-count</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.79</td></tr><tr><td style="vertical-align:top;">Paper Towels, 6-roll pack</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.99</td></tr><tr><td style="vertical-align:top;">Laundry Detergent, 92 oz</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.49</td></tr><tr><td style="vertical-align:top;">Dish Soap, Lemon, 24 oz</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.79</td></tr><tr><td style="vertical-align:top;">Tall Kitchen Trash Bags, 13 gal, 30-count</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.59</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.59</td></tr><tr><td style="vertical-align:top;">Multipurpose Cleaner Spray, 28 oz</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td></tr><tr><td style="vertical-align:top;">Reusable Shopping Bag</td><td style="text-align:center;vertical-align:top;">2</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.98</td></tr><tr><td style="vertical-align:top;">Same‑Day Delivery Fee</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.99</td></tr><tr><td style="vertical-align:top;">All‑Purpose Sponges, 3‑pack</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.49</td></tr><tr><td style="vertical-align:top;">Air Freshener, Linen, 8 oz</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td></tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;"><table style="width:100%;max-width:340px;margin-left:auto;border-collapse:collapse;font-size:9pt;"><tr><td style="padding:5px 12px;">Subtotal (Non‑Taxable)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$84.52</td></tr><tr><td style="padding:5px 12px;">Subtotal (Taxable)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$50.30</td></tr><tr><td style="padding:5px 12px;">Sales Tax (NYC 8.875%)</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$4.46</td></tr><tr style="font-weight:700;border-top:2px solid currentColor;"><td style="padding:8px 12px;">Grand Total / Total Due</td><td style="padding:8px 12px;text-align:right;white-space:nowrap;">$139.28</td></tr></table></div>
+
+      <div class="notes">
+        <h3>Payment Terms</h3>
+        <section class="document-content"><p>Thank you for shopping with GreenLeaf Market. Please review the itemized details below; if anything needs attention, reply to this email or call us and I’ll take care of it right away.</p><h3>Invoice Details</h3><ul><li><strong>Due Date:</strong> August 29, 2026</li><li><strong>Order Reference:</strong> Online Order #78439216</li><li><strong>Delivery Window:</strong> Same-Day Delivery, 4:00 PM–6:00 PM</li><li><strong>Payment Terms:</strong> Due upon receipt; please remit within 3 days of the invoice date.</li></ul><h3>Notes</h3><p>Non‑taxable classification follows New York State guidance for staple groceries. Delivery and household goods are taxable. Prices reflect today’s shelf prices; weighed items are billed by recorded weight at fulfillment.</p><h3>Returns & Adjustments</h3><p>For any quality issues or missing items, contact us within 48 hours so I can issue a refund or replacement.</p></section>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Thank you for choosing GreenLeaf Market—I appreciate your business and look forward to serving you again.
+    </footer>
+  </div>
+</body>
+</html>
