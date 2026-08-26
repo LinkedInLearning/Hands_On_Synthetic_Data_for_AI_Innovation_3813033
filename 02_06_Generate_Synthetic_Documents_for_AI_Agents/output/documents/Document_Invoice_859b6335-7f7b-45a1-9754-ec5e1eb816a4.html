@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>INVOICE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  @page { size: A4 portrait; margin: 18mm 16mm; }
+
+  /* .page is a visual container for screen preview.
+     In print, @page margin controls the actual page geometry.
+     overflow MUST be visible — hidden would clip variable-length content. */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 18mm 16mm 14mm 16mm;
+    box-sizing: border-box;
+    background: var(--color-bg);
+    overflow: visible;
+  }
+
+  /* Only add a forced break when there are two explicit .page divs
+     (e.g. a cover page followed by a body page).
+     A single .page div must NOT carry page-break-after: always — that
+     would insert a blank trailing page in the PDF. */
+  .page + .page {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* --- Table pagination (critical for variable-length transaction tables) ---
+     display: table-header-group  → browser/Playwright repeats <thead> on
+     every printed page automatically.
+     page-break-inside: avoid     → a single row is never split across pages. */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr    { page-break-inside: avoid; break-inside: avoid; }
+
+  /* Keep individual legal clauses and headings intact across page breaks.
+     Note: bare <section> is intentionally excluded — catching the entire
+     content wrapper with page-break-inside:avoid pushes whole articles to
+     the next page on long documents, leaving page 1 looking like a cover. */
+  .clause, .section, .terms-block, h2, h3 {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  h2, h3 { page-break-after: avoid; break-after: avoid; }
+
+  @media screen {
+    body { background: #e0e0e0; padding: 24px 0; }
+    .page { margin: 0 auto 24px auto; box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; margin: 0; min-height: 0; padding: 0; }
+  }
+
+:root{
+  /* Palette — cobalt */
+  --primary:#003580;
+  --secondary:#0056c7;
+  --accent:#3b82f6;
+  --bg:#ffffff;
+  --surface:#eef2f9;
+  --text:#111827;
+  --muted:#4b5563;
+  --border:#bfcde0;
+
+  /* Adapter for required base CSS */
+  --color-bg: var(--bg);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color:var(--text);
+  background:var(--color-bg);
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+  font-size:11pt;
+  line-height:1.45;
+}
+
+.header{
+  border-top:4px solid var(--primary);
+  padding-top:10px;
+  margin-bottom:12px;
+}
+.header-bar{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+.brand{
+  min-width:180px;
+  font-weight:700;
+  color:var(--text);
+  font-size:16pt;
+  letter-spacing:0.2px;
+}
+.doc-title{
+  flex:1 1 auto;
+  text-align:center;
+  font-weight:700;
+  color:var(--text);
+  letter-spacing:1px;
+  font-size:13pt;
+  text-transform:uppercase;
+}
+.doc-meta{
+  min-width:220px;
+  text-align:right;
+  color:var(--text);
+  font-size:10.5pt;
+}
+.doc-meta .row{
+  white-space:nowrap;
+}
+.doc-meta .label{
+  color:var(--muted);
+  margin-right:6px;
+}
+
+.parties{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:18px;
+  margin:6px 0 18px 0;
+}
+.party{
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:10px 12px;
+  background:#fff;
+}
+.party h3{
+  margin:0 0 6px 0;
+  font-weight:600;
+  font-size:10.5pt;
+  color:var(--text);
+}
+.party .name{
+  font-weight:600;
+  margin:0 0 4px 0;
+}
+.party .addr{
+  color:var(--text);
+  white-space:pre-line;
+}
+
+.items{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  border:1px solid var(--border);
+  border-radius:4px;
+  overflow:hidden;
+}
+.items thead th{
+  background:var(--surface);
+  color:var(--text);
+  font-weight:600;
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+}
+.items th:nth-child(2),
+.items th:nth-child(3),
+.items th:nth-child(4),
+.items td:nth-child(2),
+.items td:nth-child(3),
+.items td:nth-child(4){
+  white-space:nowrap;
+  min-width:90px;
+  text-align:right;
+}
+.items tbody td{
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+  color:var(--text);
+}
+.items tbody tr:last-child td{
+  border-bottom:none;
+}
+.items td:nth-child(1){
+  text-align:left;
+  white-space:normal;
+  word-break:break-word;
+}
+
+.totals-wrap table{
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:280px;
+  color:var(--text);
+}
+.totals-wrap th,
+.totals-wrap td{
+  padding:6px 10px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.totals-wrap tr:last-child th,
+.totals-wrap tr:last-child td{ border-bottom:none; }
+.totals-wrap th{
+  text-align:left;
+  color:var(--muted);
+  font-weight:600;
+}
+.totals-wrap td{
+  text-align:right;
+  font-weight:600;
+}
+
+.notes{
+  margin-top:18px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:#fff;
+}
+.notes h3{
+  margin:0;
+  padding:8px 12px;
+  background:var(--surface);
+  color:var(--text);
+  font-weight:600;
+  font-size:10.5pt;
+  border-bottom:1px solid var(--border);
+}
+.notes .content{
+  padding:10px 12px;
+  color:var(--text);
+}
+
+.footer{
+  margin-top:18px;
+  padding-top:10px;
+  border-top:1px solid var(--border);
+  color:var(--muted);
+  font-size:9.5pt;
+  text-align:center;
+}
+</style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="header-bar">
+        <div class="brand">Riverview Market & Grocery</div>
+        <div class="doc-title">INVOICE</div>
+        <div class="doc-meta">
+          <div class="row"><span class="label">Invoice No.</span><span class="value">RM-BK-20260824-117593</span></div>
+          <div class="row"><span class="label">Date</span><span class="value">August 24, 2026</span></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="parties">
+      <div class="party">
+        <h3>Bill From</h3>
+        <div class="name">Riverview Market & Grocery</div>
+        <div class="addr">Atlantic Yards Center, 287 Atlantic Ave<br>Brooklyn, NY 11217, USA<br>+1 (718) 555-0139 • support@riverviewmarket.com</div>
+      </div>
+      <div class="party">
+        <h3>Bill To</h3>
+        <div class="name">Emma R. Collins</div>
+        <div class="addr">Loyalty ID: 8429 2231 06<br>144 Dean Street, Apt 3F, Brooklyn, NY 11201<br>e-Receipt: emma.collins@example.com</div>
+      </div>
+    </section>
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="vertical-align:top;">RMG-PRO-040101 — Gala Apples (weighted) (lb)</td><td style="text-align:center;vertical-align:top;">2.36</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.70</td></tr><tr><td style="vertical-align:top;">RMG-PRO-040205 — Bananas (weighted) (lb)</td><td style="text-align:center;vertical-align:top;">2.14</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.69</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.48</td></tr><tr><td style="vertical-align:top;">RMG-DAI-120010 — Whole Milk, 1 Gallon (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.79</td></tr><tr><td style="vertical-align:top;">RMG-EGG-130003 — Large Brown Eggs, 12 ct (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.29</td></tr><tr><td style="vertical-align:top;">RMG-BAK-210221 — Sourdough Bread Loaf (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td></tr><tr><td style="vertical-align:top;">RMG-MEA-310412 — Chicken Thighs (raw, weighted) (lb)</td><td style="text-align:center;vertical-align:top;">3.12</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.77</td></tr><tr><td style="vertical-align:top;">RMG-GRN-520005 — Jasmine Rice, 5 lb (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.49</td></tr><tr><td style="vertical-align:top;">RMG-PRO-040612 — Fresh Spinach, 10 oz bag (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.99</td></tr><tr><td style="vertical-align:top;">RMG-PRO-041105 — Avocados, Hass (ea)</td><td style="text-align:center;vertical-align:top;">3</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.97</td></tr><tr><td style="vertical-align:top;">RMG-PRO-040803 — Yellow Onions (weighted) (lb)</td><td style="text-align:center;vertical-align:top;">1.85</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.89</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$1.65</td></tr><tr><td style="vertical-align:top;">RMG-FRZ-610118 — Ice Cream, Vanilla Bean, 1.5 qt (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.99</td></tr><tr><td style="vertical-align:top;">RMG-CER-530022 — Honey Oat Cereal, 18 oz (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td></tr><tr><td style="vertical-align:top;">DISC-CER-530022 — Manufacturer Coupon — Honey Oat Cereal (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$1.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$1.00</td></tr><tr><td style="vertical-align:top;">RMG-BEV-710032 — Cola Soda, 12-pack (12×12 oz cans) (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.99</td></tr><tr><td style="vertical-align:top;">RMG-CND-580014 — Dark Chocolate Bar, 3.5 oz (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$2.79</td></tr><tr><td style="vertical-align:top;">RMG-PREP-900201 — Rotisserie Chicken (hot, ready‑to‑eat) (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.99</td></tr><tr><td style="vertical-align:top;">RMG-PREP-900114 — Hot Soup, 16 oz (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.49</td></tr><tr><td style="vertical-align:top;">RMG-BEV-720118 — Mocha Cold Brew Coffee, 48 oz (sweetened) (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.49</td></tr><tr><td style="vertical-align:top;">DISC-BEV-710032 — Digital Coupon — Soda 12‑pack (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$1.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$1.00</td></tr><tr><td style="vertical-align:top;">RMG-HSW-820011 — Laundry Detergent, 92 oz (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$12.99</td></tr><tr><td style="vertical-align:top;">DISC-HSW-820011 — Loyalty Price — Laundry Detergent (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$2.00</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$2.00</td></tr><tr><td style="vertical-align:top;">RMG-PAP-830221 — Paper Towels, 8‑roll pack (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$10.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$10.49</td></tr><tr><td style="vertical-align:top;">PROM-PAP-830221 — Weekly Ad Savings — Paper Towels (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$1.50</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">-$1.50</td></tr><tr><td style="vertical-align:top;">RMG-HSW-820034 — Dish Soap, 19 oz (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.29</td></tr><tr><td style="vertical-align:top;">RMG-HSW-840101 — Kitchen Trash Bags, 45 ct (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.79</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$8.79</td></tr><tr><td style="vertical-align:top;">RMG-HSW-850019 — All‑Purpose Cleaner Spray, 32 oz (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$3.99</td></tr><tr><td style="vertical-align:top;">RMG-HRD-910014 — AA Batteries, 8‑pack (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.99</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$7.99</td></tr><tr><td style="vertical-align:top;">RMG-HRD-910118 — LED Bulbs A19, 4‑pack (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.49</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$9.49</td></tr><tr><td style="vertical-align:top;">RMG-KIT-860027 — Aluminum Foil, 75 sq ft (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.59</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.59</td></tr><tr><td style="vertical-align:top;">RMG-KIT-860042 — Zip Storage Bags, Quart, 50 ct (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.29</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$5.29</td></tr><tr><td style="vertical-align:top;">RMG-KIT-860055 — Cellulose Sponges, 6‑pack (ea)</td><td style="text-align:center;vertical-align:top;">1</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.19</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$4.19</td></tr><tr><td style="vertical-align:top;">NY-BTL-DEP-05 — NY Bottle Deposit — Soda (12 × $0.05) (ea)</td><td style="text-align:center;vertical-align:top;">12</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.05</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.60</td></tr><tr><td style="vertical-align:top;">NYC-BAG-005 — NYC Paper Bag Fee (ea)</td><td style="text-align:center;vertical-align:top;">2</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.05</td><td style="text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top;">$0.10</td></tr>
+      </tbody>
+    </table>
+
+    <div class="totals-wrap" style="display:flex;justify-content:flex-end;margin-top:16px;"><table style="width:100%;max-width:340px;margin-left:auto;border-collapse:collapse;font-size:9pt;"><tr><td style="padding:5px 12px;">Subtotal</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$145.15</td></tr><tr><td style="padding:5px 12px;">Sales Tax</td><td style="padding:5px 12px;text-align:right;white-space:nowrap;min-width:90px;">$8.46</td></tr><tr style="font-weight:700;border-top:2px solid currentColor;"><td style="padding:8px 12px;">Total Due</td><td style="padding:8px 12px;text-align:right;white-space:nowrap;">$153.61</td></tr></table></div>
+
+    <section class="notes">
+      <h3>Notes / Payment Terms</h3>
+      <div class="content">
+        <h3>Transaction Details</h3><p>Time: 6:18 PM EDT<br>Register: 06 • Cashier: Maya L.<br>Transaction ID: 24-0818-06-431882</p><h3>Promotional Savings</h3><p>Promotional Savings Applied: -$5.50 (Cereal coupon -$1.00, Soda digital -$1.00, Detergent loyalty -$2.00, Paper Towels ad -$1.50)</p><h3>Payment</h3><p>Method: VISA Credit •••• 4472 (Chip Read)<br>Approval / Auth Code: A08321<br>Reference: TID 1A-06-772934 • MID 58520417<br>Amount Charged: $153.61<br>Change Due: $0.00</p><h3>Terms</h3><p>Payment Terms: Retail sale — due upon receipt. Funds captured at authorization time.</p><h3>Notes</h3><p>A balanced basket for weeknight dinners and household upkeep — from fresh produce for salads to a hot rotisserie chicken for tonight. Thank you for choosing Riverview Market for your midweek restock.</p><h3>Returns & Exchanges</h3><p>Unopened non‑perishable items may be returned within 14 days with this invoice. Perishables accepted within 7 days if quality issue is verified. Prepared hot foods are non‑returnable. Bottle deposits are refundable upon container return. Prices include discounts shown. Some items may be limited by law or availability.</p><h3>Store Hours</h3><p>Mon–Sat 7:00 AM – 10:00 PM • Sun 8:00 AM – 9:00 PM</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Keep this invoice for your records. You saved $5.50 today. See you next time!
+    </footer>
+  </div>
+</body>
+</html>
