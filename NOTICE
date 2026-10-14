@@ -4,6 +4,55 @@ All Rights Reserved.
 Licensed under the LinkedIn Learning Exercise File License (the "License").
 See LICENSE in the project root for license information.
 
+ATTRIBUTIONS:
+This project uses the following third-party datasets:
+
+1. Abalone dataset
+   Source: https://archive.ics.uci.edu/dataset/1/abalone
+   License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+   https://creativecommons.org/licenses/by/4.0/
+
+2. Bank Marketing dataset (and synthetic datasets derived from it)
+   Source: https://archive.ics.uci.edu/dataset/222/bank+marketing
+   License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+   https://creativecommons.org/licenses/by/4.0/
+   Synthetic versions of this dataset are adaptations and remain subject
+   to CC BY 4.0 attribution.
+
+3. Northwind sample database (Microsoft)
+   Source: https://github.com/microsoft/sql-server-samples/tree/master/samples/databases/northwind-pubs
+   License: MIT License
+   Copyright (c) Microsoft Corporation
+
+   Microsoft SQL Server Sample Code
+
+   Copyright (c) Microsoft Corporation
+
+   All rights reserved.
+
+   MIT License.
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+The file loan_data_synthetic.csv was generated for this course using
+rule-based techniques and contains no third-party data.
+
 Please note, this project may automatically load third party code from external 
 repositories (for example, NPM modules, Composer packages, or other dependencies). 
 If so, such third party code may be subject to other license terms than as set 
